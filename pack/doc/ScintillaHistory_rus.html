@@ -486,6 +486,68 @@
 
 
     <h3>
+       <a href="http://sourceforge.net/projects/scintilla/files/SciTE/3.6.4/scite364.zip/download">Release 3.6.4</a>
+    </h3>
+    <ul>
+	<li>
+	Версия 3.6.4 от 13 марта 2016.
+	</li>
+	<li>
+	SciTE позволяет задать символ разделителя типа автозавершения.
+	</li>
+	<li>
+	Свёртка блоков кода C++ разрешает свернуть многострочные вызовы функций с параметрами в '(' и ')'.  
+	<a href="http://sourceforge.net/p/scintilla/feature-requests/1138/">Feature #1138</a>.
+	</li>
+	<li>
+	Для лексера HTML размер строк комментариев Mako ограничивается символом конца строки.
+	</li>
+	<li>
+	Блоки разворачиваются при объединении двух областей блока либо удалением промежуточной линии, либо изменением уровня свёртки за счёт добавления символов. Это исправлено и в Scintilla, и в соответствующем коде SciTE.  
+	<a href="http://sourceforge.net/p/scintilla/bugs/1799/">Bug #1799</a>.
+	</li>
+	<li>
+	Лексер Progress поддерживает шестнадцатеричные числовые литералы, однострочные комментарии, сокращённые ключевые слова и расширяет вложенные комментарии до неограниченного уровня.
+	</li>
+	<li>
+	Лексер Ruby обрабатывает синтаксис альтернативного хэш-ключа "key:" как символ.  
+	<a href="http://sourceforge.net/p/scintilla/bugs/1810/">Bug #1810</a>.
+	</li>
+	<li>
+	Лексер Rust обрабатывает Unicode-строки с управляющими последовательностями в скобках, например "\u{123abc}".  
+	<a href="http://sourceforge.net/p/scintilla/bugs/1809/">Bug #1809</a>.
+	</li>
+	<li>
+	Для GTK+ в Windows исправлена сборка 64-битной версии, которая была нарушена в 3.6.3.
+	</li>
+	<li>
+	Для Qt при сборке релиза отключены утверждения (assertions).
+	</li>
+	<li>
+	Для Qt в Windows исправлен сбой компиляции для Qt 4.x.
+	</li>
+	<li>
+	Целевой диапазон Редактора метода ввода (IME) отображается в Qt для OS X.
+	</li>
+	<li>
+	В Windows операции с буфером обмена станут более надёжными за счёт повторного вызова OpenClipboard при ошибках, которые возможны, если другое приложение открыло буфер обмена.
+	</li>
+	<li>
+	В Windows отменены изменения вер. 3.6.3, которые приводили к искажению имени Scintilla_DirectFunction при экспортировании с удалённым .DEF-файлом.  
+	<a href="http://sourceforge.net/p/scintilla/bugs/1813/">Bug #1813</a>.
+	</li>
+	<li>
+	В GTK+ и QT с Win32 в корейском исправлена ошибка, вызванная изменением ввода слова в прошлой версии.
+	</li>
+	<li>
+	Для SciTE отображаются более подробные сообщения об ошибках при проблемах с загрузкой сценария запуска Lua.  
+	<a href="http://sourceforge.net/p/scintilla/feature-requests/1139/">Feature #1139</a>.
+	</li>
+    </ul>
+	<li>Перевод: <b><a href="http://forum.ru-board.com/profile.cgi?action=show&member=NeNeZ" target=_blank>ALeXkRU</a></b>
+
+
+    <h3>
        <a href="http://sourceforge.net/projects/scintilla/files/SciTE/3.6.3/scite363.zip/download">Release 3.6.3</a>
     </h3>
     <ul>
