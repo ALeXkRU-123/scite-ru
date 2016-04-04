@@ -1,6 +1,6 @@
 /*
 Registry Jump
-Version: 3.0
+Version: 3.0.1
 Author: mozers™ <http://html-applications.bitbucket.org>
 ------------------------------------------------
 Open a new instance of the Registry Editor on the specified key.
@@ -51,4 +51,4 @@ if (/^HKEY_/i.test(key)) {
 	WshShell.Popup("Registry key not defined!\nStart RegEdit default...", 2, "Registry Jump", 48);
 }
 
-WshShell.Run('regedit -m', 1);
+WshShell.Run('%windir%\\regedit -m', 1);
