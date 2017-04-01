@@ -1,7 +1,7 @@
 /*
 Registry Jump
 Version: 3.0.1
-Author: mozers™ <http://html-applications.bitbucket.org>
+Author: mozers™ <https://html-applications.bitbucket.io>
 ------------------------------------------------
 Open a new instance of the Registry Editor on the specified key.
 The key can be input to the script in two ways:
