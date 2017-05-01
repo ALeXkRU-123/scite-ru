@@ -1,0 +1,18 @@
+# AutoHotkey Script Abbreviations
+
+if=If (|) {\n\t|\n}\n
+else=Else (|) {\n\t|\n}\n
+loop=Loop, parse, clipboard, `n, `r\n{\n\tMsgBox %% A_Index A_LoopField\n}
+loop1=loop {\n\tIf !WB.busy\n\t\tbreak\n}\n
+loop2=Loop %% 6 {\n\tMsgBox %% A_Index\n}\n
+while=While (A_Index <= ACount) {\n\tMsgBox %% A_Index\n}\n
+for=arr := ["a", "b", "c"]\nFor idx, val In arr\n\tMsgBox %% A_Index "." idx "." val\n
+stdout=FileAppend % "|My Alert message`n", *\n
+stdout1=stdout := FileOpen("*", "w")\nstdout.WriteLine("|My Alert message")\n
+debug=ListVars\nPause
+join=Join(array, sep) {\n\tfor k, v in array\n\t\tout .= sep . v\n\tReturn SubStr(out, 1+StrLen(sep))\n}\n
+GUI=#Warn\n#NoEnv\n#SingleInstance Force\nSetBatchLines -1\n; ==========================================================================\nGui, Add, GroupBox,                  Section         , %% "Sample"\nGui, Add, Text,     xs16 ys16 h21      0x200         , %% "Input Value"\nGui, Add, Edit,     x+8  ys16     w100       vEditId , %% "12345"\nGui, Add, Button,   xs0           w80    0x1 gAction , %% "Test"\n; ==========================================================================\nGui, Show, AutoSize, My Title\nreturn\n\nAction:\n\tGui, Submit, NoHide\n\tMsgBox %% EditId\nreturn\n\nGuiClose:\nGuiEscape:\nExitApp\n
+position=Gui, Add, Edit, w200 h50                       -0x200000 , %% "`nот полей окна"\nGui, Add, Edit, wp   hp  x200   y50            -0x200000 , %% "x200 y50`nот окна"\nGui, Add, Edit, wp   hp  x+0    y+0            -0x200000 , %% "x+0 y+0`nот НижПр угла предыдущего"\nGui, Add, Edit, wp   hp  xp+200 yp+50          -0x200000 , %% "xp+200 yp+50`nот ВерхЛев угла предыдущего"\nGui, Add, Edit, wp   hp  xm+0   ym+100 Section -0x200000 , %% "xm+0 ym+100 Section`nот полей окна"\nGui, Add, Edit, wp   hp  xs+200 ys+50          -0x200000 , %% "xs+200 ys+50`nот ВерхЛев угла элемента с Section"\nGui, Add, Edit, wp   hp  x200                  -0x200000 , %% "x200 (y-отсутствует)`nот левого края, но ниже всех"\nGui, Add, Edit, wp   hp         ym+50          -0x200000 , %% "ym+50 (xm-отсутствует)`nот верхнего поля, но правее всех"\nGui, Show, w1050 h300\nreturn\n\nGuiClose:\nGuiEscape:\nExitApp\n
+HasVal=; Checks if a value exists in an array (similar to HasKey)\n; FoundPos := HasVal(Haystack, Needle)\nHasVal(haystack, needle) {\n    for index, value in haystack\n        if (value = needle)\n            return index\n    if !(IsObject(haystack))\n        throw Exception("Bad haystack!", -1, haystack)\n    return 0\n}\narr := ["a", "b", "", "d"]\nMsgBox %% HasVal(arr, "b")\n
+base64encode=b64Encode(string)\n{\n    VarSetCapacity(bin, StrPut(string, "UTF-8")) && len := StrPut(string, &bin, "UTF-8") - 1 \n    if !(DllCall("crypt32\\CryptBinaryToString", "ptr", &bin, "uint", len, "uint", 0x1, "ptr", 0, "uint*", size))\n        throw Exception("CryptBinaryToString failed", -1)\n    VarSetCapacity(buf, size << 1, 0)\n    if !(DllCall("crypt32\\CryptBinaryToString", "ptr", &bin, "uint", len, "uint", 0x1, "ptr", &buf, "uint*", size))\n        throw Exception("CryptBinaryToString failed", -1)\n    return StrGet(&buf)\n}\nMsgBox %% b64Encode("The quick brown fox jumps over the lazy dog")\n
+base64decode=b64Decode(string)\n{\n    if !(DllCall("crypt32\\CryptStringToBinary", "ptr", &string, "uint", 0, "uint", 0x1, "ptr", 0, "uint*", size, "ptr", 0, "ptr", 0))\n        throw Exception("CryptStringToBinary failed", -1)\n    VarSetCapacity(buf, size, 0)\n    if !(DllCall("crypt32\\CryptStringToBinary", "ptr", &string, "uint", 0, "uint", 0x1, "ptr", &buf, "uint*", size, "ptr", 0, "ptr", 0))\n        throw Exception("CryptStringToBinary failed", -1)\n    return StrGet(&buf, size, "UTF-8")\n}\nMsgBox %% b64Decode("VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZw==")\n
