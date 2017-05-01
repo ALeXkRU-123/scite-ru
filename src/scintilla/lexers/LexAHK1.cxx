@@ -3,10 +3,13 @@
  ** Lexer for AutoHotkey, simplified version
  ** Written by Philippe Lhoste (PhiLho)
  ** Some hacks by fincs to:
- **  - Support AutoHotkey_L object syntax.
- **  - Fix folding.
+ **  - Support object syntax
+ **  - Support ternary operators (? :)
+ **  - Fix folding
+ **  - Fix expression lines starting with ( as being misdetected as continuation sections
+ **  - Add ;{ and ;} section folding support
  **/
-// Copyright 1998-2009 by Neil Hodgson <neilh@scintilla.org>
+// Copyright 1998-2012 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
 #include <stdlib.h>
@@ -15,7 +18,15 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
-#include <ctype.h>
+
+#ifdef _MSC_VER
+#pragma warning(disable: 4786)
+#endif
+
+#include <string>
+#include <vector>
+#include <map>
+#include <algorithm>
 
 #include "ILexer.h"
 #include "Scintilla.h"
@@ -28,31 +39,32 @@
 #include "StyleContext.h"
 #include "CharacterSet.h"
 #include "LexerModule.h"
+#include "OptionSet.h"
 
 
 static inline bool IsAWordChar(const int ch) {
-	return ch >= 0x80 || isalnum(ch) ||
-	       ch == '_' || ch == '$' || //ch == '[' || ch == ']' || // fincs-edit
-	       ch == '#' || ch == '@' || ch == '?';
+	return ch >= 0x80 || (isascii(ch) && isalnum(ch)) ||
+			ch == '_' || ch == '$' || //ch == '[' || ch == ']' || // fincs-edit
+			ch == '#' || ch == '@'; //|| ch == '?'; // fincs-edit
 }
 
 // Expression operator
-// ( ) + - * ** / // ! ~ ^ & << >> . < > <= >= = == != <> && ||
+// ( ) + - * ** / // ! ~ ^ & << >> . < > <= >= = == != <> && || [ ] ? :
 static inline bool IsExpOperator(const int ch) {
-	if (ch >= 0x80 || isalnum(ch))   // Fast exit
+	if (ch >= 0x80 || (isascii(ch) && isalnum(ch)))	// Fast exit
 		return false;
 	return ch == '+' || ch == '-' || ch == '*' || ch == '/' ||
-	       ch == '(' || ch == ')' || ch == '.' ||
-	       ch == '=' || ch == '<' || ch == '>' ||
-	       ch == '&' || ch == '|' || ch == '^' || ch == '~' || ch == '!'
-	       || ch == '[' || ch == ']'; // fincs-edit
+			ch == '(' || ch == ')' || ch == '.' ||
+			ch == '=' || ch == '<' || ch == '>' ||
+			ch == '&' || ch == '|' || ch == '^' || ch == '~' || ch == '!' ||
+			ch == '[' || ch == ']' || ch == '?' || ch == ':'; // fincs-edit
 }
 
 static void HighlightKeyword(
 	char currentWord[],
 	StyleContext &sc,
 	WordList *keywordlists[],
-	Accessor &) {
+	Accessor &styler) {
 
 	WordList &controlFlow = *keywordlists[0];
 	WordList &commands = *keywordlists[1];
@@ -84,6 +96,18 @@ static void HighlightKeyword(
 	}
 }
 
+static bool LineHasChar(Accessor &styler, int pos, int ch)
+{
+	for (;;)
+	{
+		int c = styler.SafeGetCharAt(pos++, 0);
+		if (c == 0 || c == '\r' || c == '\n')
+			return false;
+		if (c == ch)
+			return true;
+	}
+}
+
 static void ColouriseAHK1Doc(
 	unsigned int startPos,
 	int length,
@@ -97,7 +121,7 @@ static void ColouriseAHK1Doc(
 
 	// Do not leak onto next line
 	if (initStyle != SCE_AHK_COMMENTBLOCK &&
-	        initStyle != SCE_AHK_STRING) {
+			initStyle != SCE_AHK_STRING) {
 		initStyle = SCE_AHK_DEFAULT;
 	}
 	int currentState = initStyle;
@@ -144,20 +168,20 @@ static void ColouriseAHK1Doc(
 		}
 		if (sc.atLineStart) {
 			if (sc.state != SCE_AHK_COMMENTBLOCK &&
-			        !bContinuationSection) {
+					!bContinuationSection) {
 				// Prevent some styles from leaking back to previous line
 				sc.SetState(SCE_AHK_DEFAULT);
 			}
 			bOnlySpaces = true;
 			bIsLabel = false;
-			bInExpression = false;   // I don't manage multiline expressions yet!
+			bInExpression = false;	// I don't manage multiline expressions yet!
 			bInHexNumber = false;
 		}
 
 		// Manage cases occuring in (almost) all states (not in comments)
 		if (sc.state != SCE_AHK_COMMENTLINE &&
-		        sc.state != SCE_AHK_COMMENTBLOCK &&
-		        !IsASpace(sc.ch)) {
+				sc.state != SCE_AHK_COMMENTBLOCK &&
+				!IsASpace(sc.ch)) {
 			if (sc.ch == '`') {
 				// Backtick, escape sequence
 				currentState = sc.state;
@@ -167,9 +191,9 @@ static void ColouriseAHK1Doc(
 				continue;
 			}
 			if (sc.ch == '%' && !bIsHotstring && !bInExprString &&
-			        sc.state != SCE_AHK_VARREF &&
-			        sc.state != SCE_AHK_VARREFKW &&
-			        sc.state != SCE_AHK_ERROR) {
+					sc.state != SCE_AHK_VARREF &&
+					sc.state != SCE_AHK_VARREFKW &&
+					sc.state != SCE_AHK_ERROR) {
 				if (IsASpace(sc.chNext)) {
 					if (sc.state == SCE_AHK_STRING) {
 						// Illegal unquoted character!
@@ -191,8 +215,8 @@ static void ColouriseAHK1Doc(
 
 				// Check if the starting string is a label candidate
 				if (bOnlySpaces &&
-				        sc.ch != ',' && sc.ch != ';' && sc.ch != ':' &&
-				        sc.ch != '%' && sc.ch != '`') {
+						sc.ch != ',' && sc.ch != ';' && sc.ch != ':' &&
+						sc.ch != '%' && sc.ch != '`') {
 					// A label cannot start with one of the above chars
 					bIsLabel = true;
 				}
@@ -200,7 +224,7 @@ static void ColouriseAHK1Doc(
 				// The current state can be IDENTIFIER or DEFAULT,
 				// depending if the label starts with a word char or not
 				if (bIsLabel && sc.ch == ':' &&
-				        (IsASpace(sc.chNext) || sc.atLineEnd)) {
+						(IsASpace(sc.chNext) || sc.atLineEnd)) {
 					// ?l/a|b\e^l!:
 					// Only ; comment should be allowed after
 					sc.ChangeState(SCE_AHK_LABEL);
@@ -235,7 +259,7 @@ static void ColouriseAHK1Doc(
 		// Check if the current string is still a label candidate
 		// Labels are much more permissive than regular identifiers...
 		if (bIsLabel &&
-		        (sc.ch == ',' || sc.ch == '%' || sc.ch == '`' || IsASpace(sc.ch))) {
+				(sc.ch == ',' || sc.ch == '%' || sc.ch == '`' || IsASpace(sc.ch))) {
 			// Illegal character in a label
 			bIsLabel = false;
 		}
@@ -266,7 +290,7 @@ static void ColouriseAHK1Doc(
 				if (sc.ch == '\"') {
 					if (sc.chNext == '\"') {
 						// In expression string, double quotes are doubled to escape them
-						sc.Forward();   // Skip it
+						sc.Forward();	// Skip it
 					} else {
 						bInExprString = false;
 						sc.ForwardSetState(SCE_AHK_DEFAULT);
@@ -327,7 +351,7 @@ static void ColouriseAHK1Doc(
 		// Determine if a new state should be entered
 		if (sc.state == SCE_AHK_DEFAULT) {
 			if (sc.ch == ';' &&
-			        (bOnlySpaces || IsASpace(sc.chPrev))) {
+					(bOnlySpaces || IsASpace(sc.chPrev))) {
 				// Line comments are alone on the line or are preceded by a space
 				sc.SetState(SCE_AHK_COMMENTLINE);
 			} else if (bOnlySpaces && sc.Match('/', '*')) {
@@ -337,16 +361,16 @@ static void ColouriseAHK1Doc(
 			} else if (sc.ch == '{' || sc.ch == '}') {
 				// Code block or special key {Enter}
 				sc.SetState(SCE_AHK_SYNOPERATOR);
-			} else if (bOnlySpaces && sc.ch == '(') {
+			} else if (bOnlySpaces && sc.ch == '(' && !LineHasChar(styler, sc.currentPos, ')')) {
 				// Continuation section
 				bContinuationSection = true;
 				sc.SetState(SCE_AHK_SYNOPERATOR);
-				nextState = SCE_AHK_STRING;   // !!! Can be an expression!
+				nextState = SCE_AHK_STRING;	// !!! Can be an expression!
 			} else if (sc.Match(':', '=') ||
-			           sc.Match('+', '=') ||
-			           sc.Match('-', '=') ||
-			           sc.Match('/', '=') ||
-			           sc.Match('*', '=')) {
+					sc.Match('+', '=') ||
+					sc.Match('-', '=') ||
+					sc.Match('/', '=') ||
+					sc.Match('*', '=')) {
 				// Expression assignment
 				bInExpression = true;
 				sc.SetState(SCE_AHK_SYNOPERATOR);
@@ -400,7 +424,7 @@ static void ColouriseAHK1Doc(
 }
 
 static void FoldAHK1Doc(unsigned int startPos, int length, int initStyle,
-                        WordList *[], Accessor &styler) {
+                            WordList *[], Accessor &styler) {
 	bool foldComment = styler.GetPropertyInt("fold.comment") != 0;
 	bool foldCompact = styler.GetPropertyInt("fold.compact", 1) != 0;
 	unsigned int endPos = startPos + length;
@@ -427,6 +451,15 @@ static void FoldAHK1Doc(unsigned int startPos, int length, int initStyle,
 			} else if ((styleNext != SCE_AHK_COMMENTBLOCK) && !atEOL) {
 				// Comments don't end at end of line and the next character may be unstyled.
 				levelNext--;
+			}
+		}
+		if (foldComment && style == SCE_AHK_COMMENTLINE) {
+			if (ch == ';') {
+				if (chNext == '{') {
+					levelNext ++;
+				} else if (chNext == '}') {
+					levelNext --;
+				}
 			}
 		}
 		if (style == SCE_AHK_SYNOPERATOR) {
