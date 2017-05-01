@@ -10,9 +10,9 @@
 
 // Version numbers and dates
 //!#define VERSION_SCITE "3.5.5"
-#define VERSION_SCITE "3.5.5 .101Ru"
+#define VERSION_SCITE "3.5.5 .102Ru"
 //!#define VERSION_WORDS 3, 5, 5, 0
-#define VERSION_WORDS 3, 5, 5, 101
+#define VERSION_WORDS 3, 5, 5, 102
 #define COPYRIGHT_DATES "December 1998-April 2015"
 #define COPYRIGHT_YEARS "1998-2015"
 
