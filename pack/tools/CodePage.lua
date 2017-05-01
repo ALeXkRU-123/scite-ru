@@ -80,11 +80,11 @@ local function CharsetDetect()
 	if tonumber(props["code.page.866.detect"]) ~= 1 then return false end
 	function CharsetDOS()
 		local a, b
-		a = editor:findtext("[\128-\175][\128-\175][\128-\175]", SCFIND_REGEXP, 0)
+		a = editor:findtext("[\128-\175][\128-\175][\128-\175]", SCFIND_REGEXP, 0)         -- [А-п](866) [Ђ-Ї](1251)
 		if a then
-			b = editor:findtext("[\240-\255][\240-\255][\240-\255]", SCFIND_REGEXP, 0)
+			b = editor:findtext("[\240-\255][\240-\255][\240-\255]", SCFIND_REGEXP, 0)     -- [Ё-■](866) [р-я](1251)
 			if not b then
-				b = editor:findtext("[\192-\233][\192-\233][\192-\233]", SCFIND_REGEXP, 0)
+				b = editor:findtext("[\192-\233][\192-\233][\192-\233]", SCFIND_REGEXP, 0) -- [└-щ](866) [А-й](1251)
 			end
 			if b and b < a then return false end
 			return true
